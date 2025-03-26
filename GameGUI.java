@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
 public class GameGUI {
     private JFrame frame;
@@ -33,14 +33,15 @@ public class GameGUI {
         statusLabel.setText("Łączenie z serwerem...");
         new Thread(() -> {
             GameClient client = new GameClient();
-            if (client.connectToServer()) {
-                String playerColor = // Pobierz rzeczywisty kolor gracza od serwera
+            String playerColor = client.connectToServer(); // Pobierz kolor gracza od serwera
+    
+            if (playerColor != null) {
                 SwingUtilities.invokeLater(() -> {
                     frame.dispose(); // Zamknięcie menu
-                    new GamePanel(playerColor); // Ustaw poprawny kolor
+                    new GamePanel(playerColor); // Przekazanie poprawnego koloru
                 });
             } else {
-                SwingUtilities.invokeLater(() -> statusLabel.setText("Błąd połączenia!"));
+                statusLabel.setText("Błąd połączenia!");
             }
         }).start();
     }

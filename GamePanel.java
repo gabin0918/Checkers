@@ -1,5 +1,5 @@
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;  
 
 public class GamePanel extends JFrame {
     private Board board;
@@ -36,14 +36,11 @@ public class GamePanel extends JFrame {
         setVisible(true);
     }
 
-    public void updateBoard(String boardState) {
-        board.updateBoard(boardState);
+    public void updateTurnDisplay(String currentPlayer) {
+        turnLabel.setText("Tura: " + (currentPlayer.equals("C") ? "Czarne" : "Białe"));
     }
 
-    public void setTurn(String text) {
-        turnLabel.setText("Tura: " + text);
-    }
-    public String getPlayerColor(){
-        return playerLabel.getText();
+    public void updateBoard(String boardState) {
+        board.updateBoard(boardState);
     }
 }

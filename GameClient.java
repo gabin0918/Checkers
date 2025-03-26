@@ -7,17 +7,29 @@ public class GameClient {
     private Socket socket;
     private ObjectOutputStream output;
     private ObjectInputStream input;
+    private String playerColor;
 
-    public boolean connectToServer() {
+    public String connectToServer() {
         try {
             socket = new Socket("localhost", 5000);
             output = new ObjectOutputStream(socket.getOutputStream());
             input = new ObjectInputStream(socket.getInputStream());
-
-            return input.readBoolean(); // Oczekujemy na start gry od serwera
-        } catch (IOException e) {
+    
+            // Odczytaj najpierw potwierdzenie połączenia
+            boolean gameStarted = input.readBoolean();
+            if (!gameStarted) {
+                System.out.println("Błąd: Serwer nie potwierdził startu gry.");
+                return null;
+            }
+    
+            // Teraz odczytaj kolor gracza
+            playerColor = (String) input.readObject();
+            System.out.println("DEBUG: Otrzymano kolor gracza = " + playerColor);
+    
+            return playerColor; // Zwróć kolor do GUI
+        } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
     }
 }
