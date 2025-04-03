@@ -1,71 +1,104 @@
+import java.util.ArrayList;
+import java.util.List;
 
 public class GameLogic {
     private Board board;
-    private String currentPlayer;
-    private GamePanel gamePanel;
+    private GamePanel panel;
+    private List<Tile> forcedCaptureTiles = new ArrayList<>();
 
-    public GameLogic(Board board) {
+    public GameLogic(Board board, GamePanel panel) {
         this.board = board;
-        this.gamePanel = gamePanel;
-        this.currentPlayer = "C";  // Czarny gracz zaczyna
+        this.panel = panel;
     }
 
-    public String getCurrentPlayer() {
-        return currentPlayer;
-    }
-
-    // Funkcja wykonująca ruch
     public boolean makeMove(int startRow, int startCol, int endRow, int endCol) {
+        if (!panel.isPlayerTurn()) return false;
+
         Tile startTile = board.getTile(startRow, startCol);
-        Tile endTile = board.getTile(endRow, endCol);
-        Piece movingPiece = startTile.getPiece();
+        Piece piece = startTile.getPiece();
+        if (piece == null || !piece.getColor().equals(panel.getPlayerColor())) return false;
 
-        // Sprawdzamy, czy pionek na początkowym kafelku należy do aktualnego gracza
-        if (movingPiece == null || !movingPiece.getColor().equals(currentPlayer)) {
-            return false;
+        checkForMandatoryCaptures(panel.getPlayerColor());
+        boolean isCapture = isCaptureMove(startRow, startCol, endRow, endCol);
+
+        if (isCaptureRequired()) {
+            // Ruch musi być biciem i wykonany jednym z pionków, które mogą bić
+            if (!isCapture || !forcedCaptureTiles.contains(startTile)) {
+                panel.showCaptureWarning();  // opcjonalnie: komunikat "Musisz bić!"
+                return false;
+            }
         }
 
-        // Sprawdzamy, czy ruch jest dozwolony
-        if (!isValidMove(startRow, startCol, endRow, endCol, movingPiece)) {
-            return false;
-        }
-
-        // Wykonanie ruchu
-        endTile.setPiece(movingPiece);
-        startTile.setPiece(null);
-
-        // Zmiana pionka w damkę, jeśli dotarł na koniec planszy
-        if (endRow == (currentPlayer.equals("C") ? 7 : 0)) {
-            makeKing(endTile);
-        }
-
-        // Zmiana tury
-        currentPlayer = currentPlayer.equals("C") ? "B" : "C";
-        gamePanel.updateTurnDisplay(currentPlayer);
-
+        String move = startRow + "-" + startCol + "-" + endRow + "-" + endCol;
+        panel.sendMove(move);
         return true;
     }
 
-    private boolean isValidMove(int startRow, int startCol, int endRow, int endCol, Piece piece) {
-        int rowDiff = Math.abs(endRow - startRow);
-        int colDiff = Math.abs(endCol - startCol);
-        Tile endTile = board.getTile(endRow, endCol);
-
-        // Normalny pionek może poruszać się tylko o 1 pole do przodu po przekątnej
-        if (piece instanceof NormalPiece) {
-            return rowDiff == 1 && colDiff == 1 && endTile.getPiece() == null;
-        }
-
-        // Damka może poruszać się w każdą stronę po przekątnej
-        if (piece instanceof KingPiece) {
-            return rowDiff == colDiff && endTile.getPiece() == null;
-        }
-
-        return false;
+    public boolean canSelectPiece(Piece piece, Tile tile) {
+        checkForMandatoryCaptures(panel.getPlayerColor());
+        return piece != null &&
+               piece.getColor().equals(panel.getPlayerColor()) &&
+               panel.isPlayerTurn() &&
+               (!isCaptureRequired() || forcedCaptureTiles.contains(tile));
     }
 
-    private void makeKing(Tile tile) {
-        Piece king = new KingPiece(currentPlayer);
-        tile.setPiece(king);
+    public void checkForMandatoryCaptures(String playerColor) {
+        forcedCaptureTiles.clear();
+
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                Tile tile = board.getTile(row, col);
+                Piece piece = tile.getPiece();
+
+                if (piece != null && piece.getColor().equals(playerColor)) {
+                    int[][] directions = {{-2, -2}, {-2, 2}, {2, -2}, {2, 2}};
+                    for (int[] d : directions) {
+                        int er = row + d[0];
+                        int ec = col + d[1];
+                        int mr = row + d[0] / 2;
+                        int mc = col + d[1] / 2;
+
+                        if (isInBounds(er, ec) && isInBounds(mr, mc)) {
+                            Tile middle = board.getTile(mr, mc);
+                            Tile end = board.getTile(er, ec);
+
+                            if (middle.getPiece() != null &&
+                                !middle.getPiece().getColor().equals(playerColor) &&
+                                end.getPiece() == null) {
+                                forcedCaptureTiles.add(tile);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public boolean isCaptureRequired() {
+        return !forcedCaptureTiles.isEmpty();
+    }
+
+    public boolean isCaptureMove(int startRow, int startCol, int endRow, int endCol) {
+        return Math.abs(startRow - endRow) == 2 && Math.abs(startCol - endCol) == 2;
+    }
+
+    private boolean isInBounds(int row, int col) {
+        return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    public void resetAllHighlights() {
+        for (int row = 0; row < 8; row++)
+            for (int col = 0; col < 8; col++)
+                board.getTile(row, col).resetHighlight();
+    }
+
+    public void highlightVulnerableTiles(String playerColor) {
+        resetAllHighlights();
+        checkForMandatoryCaptures(playerColor);
+
+        for (Tile t : forcedCaptureTiles) {
+            t.highlightRed();
+        }
     }
 }

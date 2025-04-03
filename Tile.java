@@ -1,4 +1,4 @@
-import java.awt.*;  
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.*;
@@ -6,38 +6,45 @@ import javax.swing.*;
 public class Tile extends JPanel {
     private final int row, col;
     private Piece piece;
-    private GameLogic gameLogic;
-    private static Tile selectedTile = null;  // Przechowywanie wybranego kafelka
+    private static Tile selectedTile = null;
+    private Board board;
 
     private static final Color LIGHT_COLOR = new Color(240, 217, 181);
     private static final Color DARK_COLOR = new Color(181, 136, 99);
 
-    public Tile(int row, int col, GameLogic gameLogic) {
+    public Tile(int row, int col, Board board) {
         this.row = row;
         this.col = col;
-        this.gameLogic = gameLogic;
+        this.board = board;
+
         setLayout(new BorderLayout());
         setBackground((row + col) % 2 == 0 ? LIGHT_COLOR : DARK_COLOR);
 
-        // Nasłuchujemy kliknięcie
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                // Jeśli jest już wybrany kafelek
+                GamePanel panel = board.getGamePanel();
+                GameLogic logic = board.getGameLogic();
+
+                if (!panel.isPlayerTurn()) return;
+
                 if (selectedTile != null) {
-                    // Przesuwamy pionek na nowy kafelek
-                    int startRow = selectedTile.row;
-                    int startCol = selectedTile.col;
-                    int endRow = row;
-                    int endCol = col;
-                    gameLogic.makeMove(startRow, startCol, endRow, endCol);
-                    selectedTile.setBackground((selectedTile.row + selectedTile.col) % 2 == 0 ? LIGHT_COLOR : DARK_COLOR);  // Resetujemy kolor
-                    selectedTile = null;  // Resetujemy zaznaczony kafelek
+                    int sr = selectedTile.row;
+                    int sc = selectedTile.col;
+                    int er = row;
+                    int ec = col;
+
+                    if (logic.makeMove(sr, sc, er, ec)) {
+                        selectedTile.resetHighlight();
+                        selectedTile = null;
+                    }
                 } else {
-                    // Wybieramy pionek na kafelku
-                    if (piece != null && piece.getColor().equals(gameLogic.getCurrentPlayer())) {
+                    if (piece != null && logic.canSelectPiece(piece, Tile.this)) {
                         selectedTile = Tile.this;
-                        setBackground(Color.YELLOW);  // Zmieniamy kolor tła, aby zaznaczyć wybrany kafelek
+                        setBackground(Color.YELLOW);
+                    } else {
+                        // Nie można zaznaczyć pionka — np. inny musi bić
+                        // Brak reakcji
                     }
                 }
             }
@@ -49,8 +56,24 @@ public class Tile extends JPanel {
         repaint();
     }
 
+    public void highlightRed() {
+        setBackground(Color.RED);
+    }
+
+    public void resetHighlight() {
+        setBackground((row + col) % 2 == 0 ? LIGHT_COLOR : DARK_COLOR);
+    }
+
     public Piece getPiece() {
         return piece;
+    }
+
+    public int getRow() {
+        return row;
+    }
+
+    public int getCol() {
+        return col;
     }
 
     @Override

@@ -8,9 +8,21 @@ public class KingPiece extends Piece {
 
     @Override
     public void draw(Graphics g, Tile tile) {
-        g.setColor(color.equals("B") ? Color.BLACK : Color.WHITE);
-        g.fillOval(10, 10, tile.getWidth() - 20, tile.getHeight() - 20); // Rysowanie podstawowej damki
-        g.setColor(Color.RED);  // Oznaczenie damki
-        g.fillRect(tile.getWidth() / 4, tile.getHeight() / 4, tile.getWidth() / 2, tile.getHeight() / 2); // Oznaczenie damki
+        // Kolor damki (czarny lub biały)
+        g.setColor(color.startsWith("C") ? Color.BLACK : Color.WHITE);
+
+        g.fillOval(10, 10, tile.getWidth() - 20, tile.getHeight() - 20);
+
+        // Zewnętrzna żółta obwódka
+        g.setColor(Color.YELLOW);
+        g.drawOval(10, 10, tile.getWidth() - 20, tile.getHeight() - 20);
+
+        // Korona jako małe żółte kółko w środku
+        int inset = 25;
+        g.setColor(Color.YELLOW);
+        g.fillOval(inset, inset, tile.getWidth() - inset * 2, tile.getHeight() - inset * 2);
+
+        // Debug
+        System.out.println("Rysuję damkę koloru: " + color + " na polu [" + tile.getRow() + "," + tile.getCol() + "]");
     }
 }

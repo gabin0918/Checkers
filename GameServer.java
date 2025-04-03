@@ -1,54 +1,47 @@
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.LinkedList;
 import java.util.Queue;
 
+/**
+ * Klasa uruchamiająca serwer gry warcaby.
+ * Odpowiada za akceptowanie połączeń od klientów i parowanie ich w sesje gry.
+ */
 public class GameServer {
-    private static final int PORT = 5000;
-    private static Queue<Socket> waitingPlayers = new LinkedList<>();
+    private static final int PORT = 5000; // Numer portu, na którym nasłuchuje serwer
+    private static Queue<Socket> waitingPlayers = new LinkedList<>(); // Kolejka oczekujących graczy
 
+    /**
+     * Główna metoda uruchamiająca serwer.
+     * Obsługuje nadchodzące połączenia i rozpoczyna nowe sesje gry dla sparowanych graczy.
+     * @param args Argumenty wiersza poleceń (niewykorzystywane)
+     */
     public static void main(String[] args) {
-        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
-            System.out.println("Serwer uruchomiony. Oczekiwanie na graczy...");
+        System.out.println("Serwer warcabów uruchomiony...");
 
+        try (ServerSocket serverSocket = new ServerSocket(PORT)) {
             while (true) {
-                // Akceptowanie połączenia gracza
-                Socket playerSocket = serverSocket.accept();
-                System.out.println("Gracz dołączył: " + playerSocket);
+                Socket player = serverSocket.accept(); // Oczekiwanie na połączenie od gracza
+                System.out.println("Nowy gracz: " + player);
 
                 synchronized (waitingPlayers) {
-                    if (waitingPlayers.isEmpty()) {
-                        // Pierwszy gracz czeka na przeciwnika
-                        waitingPlayers.add(playerSocket);
-                        System.out.println("Gracz czeka na przeciwnika...");
-                    } else {
-                        // Dopasowanie dwóch graczy
-                        Socket opponentSocket = waitingPlayers.poll();
-                        System.out.println("Sparowano dwóch graczy! Gra się rozpoczyna.");
+                    waitingPlayers.add(player); // Dodanie gracza do kolejki oczekujących
 
-                        // Tworzenie strumieni do komunikacji
-                        ObjectOutputStream out1 = new ObjectOutputStream(playerSocket.getOutputStream());
-                        ObjectOutputStream out2 = new ObjectOutputStream(opponentSocket.getOutputStream());
+                    // Jeżeli są co najmniej dwaj gracze, uruchamiana jest nowa sesja gry
+                    if (waitingPlayers.size() >= 2) {
+                        Socket p1 = waitingPlayers.poll();
+                        Socket p2 = waitingPlayers.poll();
 
-                        ObjectInputStream in1 = new ObjectInputStream(playerSocket.getInputStream());
-                        ObjectInputStream in2 = new ObjectInputStream(opponentSocket.getInputStream());
+                        System.out.println("Gracze sparowani: " + p1 + " vs " + p2);
 
-                        // Wysłanie potwierdzenia dla obu graczy, że gra się rozpoczęła
-                        out1.writeBoolean(true);
-                        out2.writeBoolean(true);
-                        out1.flush();
-                        out2.flush();
-
-                        // Uruchomienie sesji gry
-                        new GameSession(playerSocket, opponentSocket, out1, out2, in1, in2).start();
+                        // Utworzenie i uruchomienie nowego wątku gry dla pary graczy
+                        new GameSession(p1, p2).start();
                     }
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            e.printStackTrace(); // Obsługa wyjątku związanego z połączeniem sieciowym
         }
     }
 }

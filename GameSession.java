@@ -1,114 +1,220 @@
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.*;
 import java.net.Socket;
 
+/**
+ * Klasa reprezentująca sesję gry pomiędzy dwoma graczami.
+ * Obsługuje komunikację i logikę serwera w trakcie rozgrywki.
+ */
 public class GameSession extends Thread {
     private Socket player1, player2;
-    private ObjectOutputStream out1, out2;
-    private ObjectInputStream in1, in2;
+    private BufferedReader in1, in2;
+    private PrintWriter out1, out2;
+    private String[][] board = new String[8][8]; // Dwuwymiarowa tablica reprezentująca planszę gry
+    private String currentTurn = "C"; // Bieżąca tura: "C" – czarne, "B" – białe
 
-    public GameSession(Socket p1, Socket p2, ObjectOutputStream out1, ObjectOutputStream out2, 
-                       ObjectInputStream in1, ObjectInputStream in2) {
+    /**
+     * Konstruktor klasy sesji gry.
+     * @param p1 Gniazdo pierwszego gracza (czarne)
+     * @param p2 Gniazdo drugiego gracza (białe)
+     */
+    public GameSession(Socket p1, Socket p2) {
         this.player1 = p1;
         this.player2 = p2;
-        this.out1 = out1;
-        this.out2 = out2;
-        this.in1 = in1;
-        this.in2 = in2;
     }
 
+    /**
+     * Główna metoda wątku sesji.
+     * Obsługuje wymianę informacji między graczami i przetwarza ich ruchy.
+     */
     @Override
     public void run() {
         try {
-            // Przypisanie kolorów graczom
-            out1.writeObject("C"); // Czarny dla pierwszego gracza
-            out2.writeObject("B"); // Biały dla drugiego gracza
-            out1.flush();
-            out2.flush();
-            
-            System.out.println("Gracze połączeni: Czarne (Gracz 1), Białe (Gracz 2)");
+            in1 = new BufferedReader(new InputStreamReader(player1.getInputStream()));
+            in2 = new BufferedReader(new InputStreamReader(player2.getInputStream()));
+            out1 = new PrintWriter(player1.getOutputStream(), true);
+            out2 = new PrintWriter(player2.getOutputStream(), true);
 
-            // Stan planszy z początkowymi pionkami
-            String initialBoardState = generateInitialBoardState();  // Generujemy stan planszy
+            out1.println("CONNECTED C");
+            out2.println("CONNECTED B");
 
-            // Przesyłamy stan planszy do obu graczy
-            out1.writeObject(initialBoardState);
-            out2.writeObject(initialBoardState);
-            out1.flush();
-            out2.flush();
-
-            // Rozpoczynamy wymianę ruchów
-            String currentBoardState = initialBoardState;
-            boolean player1Turn = true;
+            initializeBoard();
+            sendGameState();
 
             while (true) {
-                if (player1Turn) {
-                    // Czekamy na ruch od Gracza 1
-                    String move1 = (String) in1.readObject();
-                    System.out.println("Gracz 1 wykonał ruch: " + move1);
+                BufferedReader currentIn = currentTurn.equals("C") ? in1 : in2;
+                String move = currentIn.readLine();
 
-                    // Zaktualizuj stan planszy po ruchu
-                    currentBoardState = updateBoardState(currentBoardState, move1);
-
-                    // Wyślij zaktualizowaną planszę do obu graczy
-                    out1.writeObject(currentBoardState);
-                    out2.writeObject(currentBoardState);
-                    out1.flush();
-                    out2.flush();
-
-                    // Wyślij komunikat o turze
-                    out1.writeObject("Twoja tura");
-                    out2.writeObject("Czekaj na swoją turę");
-                } else {
-                    // Czekamy na ruch od Gracza 2
-                    String move2 = (String) in2.readObject();
-                    System.out.println("Gracz 2 wykonał ruch: " + move2);
-
-                    // Zaktualizuj stan planszy po ruchu
-                    currentBoardState = updateBoardState(currentBoardState, move2);
-
-                    // Wyślij zaktualizowaną planszę do obu graczy
-                    out1.writeObject(currentBoardState);
-                    out2.writeObject(currentBoardState);
-                    out1.flush();
-                    out2.flush();
-
-                    // Wyślij komunikat o turze
-                    out2.writeObject("Twoja tura");
-                    out1.writeObject("Czekaj na swoją turę");
+                if (applyMove(move)) {
+                    currentTurn = currentTurn.equals("C") ? "B" : "C";
+                    sendGameState();
                 }
-
-                // Przełącz turę
-                player1Turn = !player1Turn;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException e) {
+            System.out.println("Gracz rozłączony.");
         }
     }
 
-    // Generowanie początkowego stanu planszy z pionkami
-    private String generateInitialBoardState() {
-        StringBuilder sb = new StringBuilder();
-
+    /**
+     * Inicjalizuje początkowy stan planszy, umieszczając pionki obu graczy.
+     */
+    private void initializeBoard() {
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
-                if ((row < 3) && ((row + col) % 2 != 0)) {
-                    sb.append("C,");  // Czarny pionek
-                } else if ((row > 4) && ((row + col) % 2 != 0)) {
-                    sb.append("B,");  // Biały pionek
+                if (row < 3 && (row + col) % 2 != 0) {
+                    board[row][col] = "C";
+                } else if (row > 4 && (row + col) % 2 != 0) {
+                    board[row][col] = "B";
                 } else {
-                    sb.append(" ,");  // Puste pole
+                    board[row][col] = " ";
                 }
             }
         }
-
-        return sb.toString();  // Zwracamy stan planszy
     }
 
-    private String updateBoardState(String currentState, String move) {
-      
-       return currentState;  // Zwracamy zaktualizowany stan planszy
+    /**
+     * Weryfikuje i wykonuje ruch przesłany przez klienta.
+     * Obsługuje reguły ruchu, bicie, promocję i weryfikację poprawności.
+     * @param move Ruch w formacie "sr-sc-er-ec"
+     * @return true, jeśli ruch jest poprawny i został wykonany
+     */
+    private boolean applyMove(String move) {
+        String[] parts = move.split("-");
+        int sr = Integer.parseInt(parts[0]);
+        int sc = Integer.parseInt(parts[1]);
+        int er = Integer.parseInt(parts[2]);
+        int ec = Integer.parseInt(parts[3]);
 
+        String piece = board[sr][sc];
+        if (piece == null || piece.trim().isEmpty()) return false;
+        if (!piece.startsWith(currentTurn)) return false;
+
+        // Zapamiętanie koloru w celu promocji
+        String colorOnly = piece.startsWith("B") ? "B" : "C";
+
+        String destination = board[er][ec];
+        if (destination != null && !destination.equals(" ")) {
+            System.out.println("Pole docelowe [" + er + "," + ec + "] jest już zajęte!");
+            return false;
+        }
+
+        // Blokada cofania (dotyczy tylko zwykłych pionków)
+        if (!piece.endsWith("king") && Math.abs(sr - er) == 1) {
+            if (piece.equals("C") && er <= sr) {
+                System.out.println("Czarny pionek nie może się cofać!");
+                return false;
+            }
+            if (piece.equals("B") && er >= sr) {
+                System.out.println("Biały pionek nie może się cofać!");
+                return false;
+            }
+        }
+
+        System.out.println("Ruch z [" + sr + "," + sc + "] na [" + er + "," + ec + "]");
+        System.out.println("Pionek: " + piece);
+
+        // Obsługa ruchów damką
+        if (piece.endsWith("king")) {
+            int dr = er - sr;
+            int dc = ec - sc;
+
+            if (Math.abs(dr) != Math.abs(dc)) {
+                System.out.println("Dama musi poruszać się po przekątnych!");
+                return false;
+            }
+
+            int stepR = dr / Math.abs(dr);
+            int stepC = dc / Math.abs(dc);
+
+            int r = sr + stepR;
+            int c = sc + stepC;
+            int enemies = 0;
+            int enemyRow = -1, enemyCol = -1;
+
+            while (r != er && c != ec) {
+                String cell = board[r][c];
+                if (!cell.equals(" ")) {
+                    if (cell.startsWith(currentTurn)) {
+                        System.out.println("Dama nie może przeskakiwać własnych pionków!");
+                        return false;
+                    } else {
+                        enemies++;
+                        enemyRow = r;
+                        enemyCol = c;
+                    }
+                }
+                r += stepR;
+                c += stepC;
+            }
+
+            if (enemies > 1) {
+                System.out.println("Dama nie może przeskoczyć więcej niż jednego przeciwnika!");
+                return false;
+            }
+
+            if (enemies == 1) {
+                System.out.println("Dama bije pionek na [" + enemyRow + "," + enemyCol + "]");
+                board[enemyRow][enemyCol] = " ";
+            }
+
+            board[sr][sc] = " ";
+            board[er][ec] = piece;
+            return true;
+        }
+
+        // Obsługa bicia zwykłym pionkiem
+        if (Math.abs(sr - er) == 2 && Math.abs(sc - ec) == 2) {
+            int middleRow = (sr + er) / 2;
+            int middleCol = (sc + ec) / 2;
+            String beaten = board[middleRow][middleCol];
+
+            if (beaten != null && !beaten.equals(" ") && !beaten.startsWith(currentTurn)) {
+                System.out.println("Zbijam pionek na [" + middleRow + "," + middleCol + "]");
+                board[middleRow][middleCol] = " ";
+            } else {
+                System.out.println("Nie znaleziono pionka przeciwnika do zbicia!");
+                return false;
+            }
+        }
+
+        // Przeniesienie pionka
+        board[sr][sc] = " ";
+
+        // Promocja na damkę
+        if (colorOnly.equals("C") && er == 7) {
+            piece = "C_king";
+            System.out.println("PROMOCJA NA C_king");
+        }
+        if (colorOnly.equals("B") && er == 0) {
+            piece = "B_king";
+            System.out.println("PROMOCJA NA B_king");
+        }
+
+        board[er][ec] = piece;
+        System.out.println("UMIESZCZONO NA [" + er + "," + ec + "] pionek: " + piece);
+
+        return true;
+    }
+
+    /**
+     * Wysyła aktualny stan planszy do obu graczy wraz z informacją o bieżącej turze.
+     */
+    private void sendGameState() {
+        StringBuilder state = new StringBuilder();
+        state.append("TURA:").append(currentTurn);
+
+        int liczbaPol = 0;
+        for (int row = 0; row < 8; row++) {
+            for (int col = 0; col < 8; col++) {
+                state.append(",").append(board[row][col]);
+                liczbaPol++;
+            }
+        }
+
+        System.out.println("Serwer wysyła pól: " + liczbaPol);
+
+        String finalState = state.toString();
+        out1.println(finalState);
+        out2.println(finalState);
     }
 }
