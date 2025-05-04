@@ -44,36 +44,47 @@ public class GameLogic {
 
     public void checkForMandatoryCaptures(String playerColor) {
         forcedCaptureTiles.clear();
-
+    
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 Tile tile = board.getTile(row, col);
                 Piece piece = tile.getPiece();
-
+    
                 if (piece != null && piece.getColor().equals(playerColor)) {
+                    boolean isKing = piece instanceof KingPiece;
+    
                     int[][] directions = {{-2, -2}, {-2, 2}, {2, -2}, {2, 2}};
                     for (int[] d : directions) {
                         int er = row + d[0];
                         int ec = col + d[1];
                         int mr = row + d[0] / 2;
                         int mc = col + d[1] / 2;
-
-                        if (isInBounds(er, ec) && isInBounds(mr, mc)) {
-                            Tile middle = board.getTile(mr, mc);
-                            Tile end = board.getTile(er, ec);
-
-                            if (middle.getPiece() != null &&
-                                !middle.getPiece().getColor().equals(playerColor) &&
-                                end.getPiece() == null) {
-                                forcedCaptureTiles.add(tile);
-                                break;
+    
+                        if (!isInBounds(er, ec) || !isInBounds(mr, mc)) continue;
+    
+                        Tile middle = board.getTile(mr, mc);
+                        Tile end = board.getTile(er, ec);
+    
+                        // warunek: pionek przeciwnika po środku i wolne pole za nim
+                        if (middle.getPiece() != null &&
+                            !middle.getPiece().getColor().equals(playerColor) &&
+                            end.getPiece() == null) {
+    
+                            // Sprawdź czy zwykły pionek porusza się w dozwolonym kierunku
+                            if (!isKing) {
+                                if (playerColor.equals("C") && d[0] < 0) continue; // czarny może tylko w dół
+                                if (playerColor.equals("B") && d[0] > 0) continue; // biały może tylko w górę
                             }
+    
+                            forcedCaptureTiles.add(tile);
+                            break;
                         }
                     }
                 }
             }
         }
     }
+    
 
     public boolean isCaptureRequired() {
         return !forcedCaptureTiles.isEmpty();
