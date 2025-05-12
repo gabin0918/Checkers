@@ -1,8 +1,2 @@
 # Ignoruj pliki klas
 *.class
-
-# Ignoruj folder lib jeśli nie chcesz commitować zewnętrznych .jar
-lib/
-
-# Ignoruj pliki bat (opcjonalnie)
-*.bat
