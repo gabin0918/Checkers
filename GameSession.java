@@ -204,7 +204,7 @@ public class GameSession extends Thread {
         for (int[] d : directions) {
             int er = row + d[0];
             int ec = col + d[1];
-            int mr = row + d[0] / 2 + row;
+            int mr = row + d[0] / 2;
             int mc = col + d[1] / 2;
 
             if (!isInBounds(er, ec) || !isInBounds(mr, mc)) continue;
