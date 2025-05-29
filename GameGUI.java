@@ -89,15 +89,10 @@ public class GameGUI {
                 "Gracze mają po 12 pionków na planszy 8x8, grają po ciemnych polach.\n" +
                 "\n" +
                 "Zasady:\n" +
-                "\n" +
                 "Pionki ruszają się na ukos do przodu.\n" +
-                "\n" +
                 "Po dojściu do końca planszy pionek staje się damką – może chodzić i bić w obu kierunkach.\n" +
-                "\n" +
                 "Bicie jest obowiązkowe.\n" +
-                "\n" +
                 "Istnieje możliwość zbicia wielu pionków na raz.\n" +
-                "\n" +
-                "Cel gry: zbić wszystkie pionki przeciwnika lub go zablokować");
+                "Cel gry: zbić wszystkie pionki przeciwnika.");
     }
 }

@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameLogic {
+public class GameLogic implements InterfaceGameLogic {
     private Board board;
     private GamePanel panel;
     private List<Tile> forcedCaptureTiles = new ArrayList<>();
@@ -10,7 +10,7 @@ public class GameLogic {
         this.board = board;
         this.panel = panel;
     }
-
+    @Override
     public boolean makeMove(int startRow, int startCol, int endRow, int endCol) {
         if (!panel.isPlayerTurn()) return false;
 
@@ -33,7 +33,7 @@ public class GameLogic {
         panel.sendMove(move);
         return true;
     }
-
+    @Override
     public boolean canSelectPiece(Piece piece, Tile tile) {
         checkForMandatoryCaptures(panel.getPlayerColor());
         return piece != null &&
@@ -41,7 +41,7 @@ public class GameLogic {
                panel.isPlayerTurn() &&
                (!isCaptureRequired() || forcedCaptureTiles.contains(tile));
     }
-
+    @Override
     public void checkForMandatoryCaptures(String playerColor) {
         forcedCaptureTiles.clear();
     
@@ -84,12 +84,12 @@ public class GameLogic {
             }
         }
     }
-    
 
+    @Override
     public boolean isCaptureRequired() {
         return !forcedCaptureTiles.isEmpty();
     }
-
+    @Override
     public boolean isCaptureMove(int startRow, int startCol, int endRow, int endCol) {
         return Math.abs(startRow - endRow) == 2 && Math.abs(startCol - endCol) == 2;
     }
@@ -97,13 +97,13 @@ public class GameLogic {
     private boolean isInBounds(int row, int col) {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
-
+    @Override
     public void resetAllHighlights() {
         for (int row = 0; row < 8; row++)
             for (int col = 0; col < 8; col++)
                 board.getTile(row, col).resetHighlight();
     }
-
+    @Override
     public void highlightVulnerableTiles(String playerColor) {
         resetAllHighlights();
         checkForMandatoryCaptures(playerColor);
