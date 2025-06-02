@@ -1,5 +1,8 @@
 import java.util.ArrayList;
 import java.util.List;
+import java.io.FileWriter;
+import java.io.IOException;
+
 
 public class GameLogic implements InterfaceGameLogic {
     private Board board;
@@ -22,17 +25,29 @@ public class GameLogic implements InterfaceGameLogic {
         boolean isCapture = isCaptureMove(startRow, startCol, endRow, endCol);
 
         if (isCaptureRequired()) {
-            // Ruch musi być biciem i wykonany jednym z pionków, które mogą bić
             if (!isCapture || !forcedCaptureTiles.contains(startTile)) {
-                panel.showCaptureWarning();  // opcjonalnie: komunikat "Musisz bić!"
+                panel.showCaptureWarning();
                 return false;
             }
         }
 
         String move = startRow + "-" + startCol + "-" + endRow + "-" + endCol;
         panel.sendMove(move);
+
+       
+        String player = panel.getPlayerColor();
+        String action = isCapture ? "bicie" : "ruch";
+        String log = "Gracz " + player + ": " + action + " z (" + startRow + "," + startCol + ") do (" + endRow + "," + endCol + ")\n";
+
+        try (FileWriter writer = new FileWriter("raport.txt", true)) {
+            writer.write(log);
+        } catch (IOException e) {
+            e.printStackTrace(); 
+        }
+
         return true;
     }
+
     @Override
     public boolean canSelectPiece(Piece piece, Tile tile) {
         checkForMandatoryCaptures(panel.getPlayerColor());
