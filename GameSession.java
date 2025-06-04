@@ -53,6 +53,27 @@ public class GameSession extends Thread {
 
                 boolean validMove = applyMove(move);
                 sendGameState();
+                int countC = 0, countB = 0;
+for (int i = 0; i < 8; i++) {
+    for (int j = 0; j < 8; j++) {
+        String p = board[i][j];
+        if (p.startsWith("C")) countC++;
+        else if (p.startsWith("B")) countB++;
+    }
+}
+
+if (countC == 0) {
+    out1.println("GAME_OVER:LOSE");
+    out2.println("GAME_OVER:WIN");
+    UserDatabase.updateRankingAfterGame(username2, username1);
+    break;
+} else if (countB == 0) {
+    out1.println("GAME_OVER:WIN");
+    out2.println("GAME_OVER:LOSE");
+    UserDatabase.updateRankingAfterGame(username1, username2);
+    break;
+}
+
             }
 
         } catch (IOException e) {

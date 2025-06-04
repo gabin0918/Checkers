@@ -37,7 +37,12 @@ public class GameClient {
                         System.out.println("[CLIENT] GamePanel = null! Przechowuję przeciwnika tymczasowo.");
                         pendingOpponent = opponent;
                     }
-                }
+                }if (line.startsWith("GAME_OVER:WIN")) {
+    gamePanel.showEndGameOverlay("Wygrałeś!");
+} else if (line.startsWith("GAME_OVER:LOSE")) {
+    gamePanel.showEndGameOverlay("Przegrałeś!");
+}
+
             }
 
             return playerColor;
