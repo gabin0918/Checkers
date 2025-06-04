@@ -93,6 +93,6 @@ public class GameGUI {
                 "Po dojściu do końca planszy pionek staje się damką – może chodzić i bić w obu kierunkach.\n" +
                 "Bicie jest obowiązkowe.\n" +
                 "Istnieje możliwość zbicia wielu pionków na raz.\n" +
-                "Cel gry: zbić wszystkie pionki przeciwnika.");
+                "Cel gry: zbić wszystkie pionki przeciwnika lub zablokować przeciwnika.");
     }
 }

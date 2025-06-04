@@ -7,6 +7,11 @@ public class NormalPiece extends Piece {
     }
 
     @Override
+    public boolean isKing() {
+        return false;
+    }
+
+    @Override
     public void draw(Graphics g, Tile tile) {
         System.out.println("Rysuję pionek [" + color + "] na polu [" + tile.getRow() + "," + tile.getCol() + "]");
         g.setColor(color.equals("C") ? Color.BLACK : Color.WHITE);

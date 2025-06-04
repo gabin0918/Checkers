@@ -213,12 +213,59 @@ public class GamePanel extends JFrame {
                 Tile tile = board.getTile(row, col);
                 Piece piece = tile.getPiece();
                 if (piece != null && piece.getColor().equals(playerColor)) {
-                    // możesz tu rozszerzyć na sprawdzenie możliwego ruchu
+                    if (canPieceMove(piece, row, col)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean canPieceMove(Piece piece, int row, int col) {
+        int[][] directions;
+        boolean isKing = piece.isKing();
+        if (isKing) {
+            directions = new int[][]{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+        } else if (piece.getColor().equals("C")) {
+            directions = new int[][]{{1, -1}, {1, 1}};
+        } else {
+            directions = new int[][]{{-1, -1}, {-1, 1}};
+        }
+
+        // Sprawdź zwykły ruch
+        for (int[] d : directions) {
+            int newRow = row + d[0];
+            int newCol = col + d[1];
+            if (isInBounds(newRow, newCol)) {
+                Tile dest = board.getTile(newRow, newCol);
+                if (dest.getPiece() == null) {
+                    return true;
+                }
+            }
+        }
+
+        // Sprawdź bicie
+        for (int[] d : directions) {
+            int midRow = row + d[0];
+            int midCol = col + d[1];
+            int newRow = row + 2 * d[0];
+            int newCol = col + 2 * d[1];
+            if (isInBounds(newRow, newCol) && isInBounds(midRow, midCol)) {
+                Tile midTile = board.getTile(midRow, midCol);
+                Tile dest = board.getTile(newRow, newCol);
+                if (midTile.getPiece() != null &&
+                        !midTile.getPiece().getColor().equals(piece.getColor()) &&
+                        dest.getPiece() == null) {
                     return true;
                 }
             }
         }
         return false;
+    }
+
+    private boolean isInBounds(int row, int col) {
+        return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
     
 }

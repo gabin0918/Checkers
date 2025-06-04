@@ -7,6 +7,11 @@ public class KingPiece extends Piece {
     }
 
     @Override
+    public boolean isKing() {
+        return true;
+    }
+
+    @Override
     public void draw(Graphics g, Tile tile) {
         // Kolor damki (czarny lub biały)
         g.setColor(color.startsWith("C") ? Color.BLACK : Color.WHITE);

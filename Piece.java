@@ -11,5 +11,7 @@ public abstract class Piece {
         return color;
     }
 
+    public abstract boolean isKing();
+
     public abstract void draw(Graphics g, Tile tile);
 }
